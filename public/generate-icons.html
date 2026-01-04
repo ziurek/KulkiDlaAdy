@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Icon Generator</title>
+</head>
+<body>
+  <h1>Icon Generator for PWA</h1>
+  <p>Open this file in a browser and use the canvas below to generate icons.</p>
+  <canvas id="iconCanvas" width="512" height="512"></canvas>
+  <br><br>
+  <button onclick="generateIcons()">Generate Icons</button>
+  <div id="downloadLinks"></div>
+
+  <script>
+    function generateIcons() {
+      const canvas = document.getElementById('iconCanvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Clear canvas
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(0, 0, 512, 512);
+      
+      // Draw colorful circles
+      const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffa500'];
+      const positions = [
+        [128, 128], [256, 128], [384, 128],
+        [192, 256], [320, 256],
+        [128, 384], [256, 384], [384, 384]
+      ];
+      
+      positions.forEach((pos, i) => {
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.beginPath();
+        ctx.arc(pos[0], pos[1], 40, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      
+      // Generate different sizes
+      const sizes = [192, 512];
+      const linksDiv = document.getElementById('downloadLinks');
+      linksDiv.innerHTML = '<h2>Right-click and save as:</h2>';
+      
+      sizes.forEach(size => {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = size;
+        tempCanvas.height = size;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(canvas, 0, 0, size, size);
+        
+        const link = document.createElement('a');
+        link.download = `icon-${size}.png`;
+        link.href = tempCanvas.toDataURL('image/png');
+        link.textContent = `Download icon-${size}.png`;
+        link.style.display = 'block';
+        link.style.margin = '10px 0';
+        linksDiv.appendChild(link);
+      });
+    }
+    
+    // Auto-generate on load
+    window.addEventListener('load', generateIcons);
+  </script>
+</body>
+</html>
+
