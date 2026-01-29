@@ -32,6 +32,8 @@ export class GameScene extends Phaser.Scene {
     ballsPerRound: 3
   };
   private configPanelWidth: number = 250;
+  // Device pixel ratio for high-DPI rendering
+  private dpr: number = Math.min(window.devicePixelRatio || 1, 3);
 
   constructor() {
     super({ key: 'GameScene' });
@@ -134,31 +136,29 @@ export class GameScene extends Phaser.Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    // Ensure configPanelWidth is valid (at least 0)
-    const panelWidth = Math.max(0, this.configPanelWidth);
+    // Scale panel width by dpr since it's in CSS pixels but canvas is at higher resolution
+    const panelWidth = Math.max(0, this.configPanelWidth) * this.dpr;
     const availableWidth = screenWidth - panelWidth;
     
     // On mobile, make grid wider and position closer to top to leave space for leaderboard
     const isMobileDevice = window.innerWidth <= 768;
-    const leaderboardSpace = isMobileDevice ? 120 : 0; // Space reserved for leaderboard on mobile
+    const leaderboardSpace = isMobileDevice ? 120 * this.dpr : 0; // Space reserved for leaderboard on mobile
     
     // Adjust available height for leaderboard on mobile
     const availableHeight = screenHeight - leaderboardSpace;
     const maxCellSize = Math.min(availableWidth, availableHeight) / (boardSize + (isMobileDevice ? 1.5 : 2));
-    this.cellSize = Math.max(25, Math.min(50, maxCellSize));
+    this.cellSize = Math.max(25 * this.dpr, Math.min(50 * this.dpr, maxCellSize));
     
     // Recalculate board position - on mobile, position at top below controls
     this.boardOffsetX = panelWidth + (availableWidth - boardSize * this.cellSize) / 2;
     if (isMobileDevice) {
       // Position at top on mobile, below score text and next balls preview
-      // Score text: safeAreaTop + 20, fontSize 24px -> bottom at ~safeAreaTop + 44
-      // Next balls: safeAreaTop + 15 (center), radius 15 -> bottom at ~safeAreaTop + 30
-      // Position grid below both with some spacing
-      const safeAreaTop = this.getSafeAreaTop();
-      this.boardOffsetY = safeAreaTop + 70; // Below score (44px) and next balls (30px) with spacing
+      // Scale the spacing by dpr
+      const safeAreaTop = this.getSafeAreaTop() * this.dpr;
+      this.boardOffsetY = safeAreaTop + 70 * this.dpr; // Below score and next balls with spacing
     } else {
       // Center vertically on desktop
-      this.boardOffsetY = (screenHeight - boardSize * this.cellSize) / 2 - 50;
+      this.boardOffsetY = (screenHeight - boardSize * this.cellSize) / 2 - 50 * this.dpr;
     }
 
     // Update grid background rectangles
@@ -171,7 +171,7 @@ export class GameScene extends Phaser.Scene {
         if (rectIndex < this.gridRectangles.length) {
           const rect = this.gridRectangles[rectIndex];
           rect.setPosition(x, y);
-          rect.setSize(this.cellSize - 2, this.cellSize - 2);
+          rect.setSize(this.cellSize - 2 * this.dpr, this.cellSize - 2 * this.dpr);
         }
         rectIndex++;
       }
@@ -187,7 +187,7 @@ export class GameScene extends Phaser.Scene {
             const y = this.boardOffsetY + cell.row * this.cellSize + this.cellSize / 2;
             // Use setPosition to update both x and y at once
             cell.ball.setPosition(x, y);
-            cell.ball.setRadius(this.cellSize / 2 - 4);
+            cell.ball.setRadius(this.cellSize / 2 - 4 * this.dpr);
           }
         }
       }
@@ -199,11 +199,11 @@ export class GameScene extends Phaser.Scene {
       const windowWidth = window.innerWidth;
       const isMobileScreen = windowWidth <= 768;
       const isSmallMobileScreen = windowWidth <= 480;
-      const toggleButtonWidth = isSmallMobileScreen ? 30 : isMobileScreen ? 35 : 40;
-      const scoreX = Math.max(panelWidth, toggleButtonWidth) + 10;
+      const toggleButtonWidth = (isSmallMobileScreen ? 30 : isMobileScreen ? 35 : 40) * this.dpr;
+      const scoreX = Math.max(panelWidth, toggleButtonWidth) + 10 * this.dpr;
       // Account for safe area (notch) + 20px padding
-      const safeAreaTop = this.getSafeAreaTop();
-      const scoreY = safeAreaTop;
+      const safeAreaTop = this.getSafeAreaTop() * this.dpr;
+      const scoreY = safeAreaTop + 20 * this.dpr;
       this.scoreText.setX(Math.round(scoreX));
       this.scoreText.setY(Math.round(scoreY));
     }
@@ -249,32 +249,30 @@ export class GameScene extends Phaser.Scene {
 
     const boardSize = this.config.boardSize;
 
-    // Calculate responsive cell size
+    // Calculate responsive cell size - scale by dpr for high-DPI displays
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    const availableWidth = screenWidth - this.configPanelWidth;
+    const panelWidth = this.configPanelWidth * this.dpr;
+    const availableWidth = screenWidth - panelWidth;
     
     // On mobile, make grid wider and position closer to top to leave space for leaderboard
     const isMobileDevice = window.innerWidth <= 768;
-    const leaderboardSpace = isMobile ? 120 : 0; // Space reserved for leaderboard on mobile
+    const leaderboardSpace = isMobile ? 120 * this.dpr : 0; // Space reserved for leaderboard on mobile
     
     // Adjust available height for leaderboard on mobile
     const availableHeight = screenHeight - leaderboardSpace;
     const maxCellSize = Math.min(availableWidth, availableHeight) / (boardSize + (isMobileDevice ? 1.5 : 2));
-    this.cellSize = Math.max(25, Math.min(50, maxCellSize));
+    this.cellSize = Math.max(25 * this.dpr, Math.min(50 * this.dpr, maxCellSize));
     
     // Calculate board position - on mobile, position at top below controls
-    this.boardOffsetX = this.configPanelWidth + (availableWidth - boardSize * this.cellSize) / 2;
+    this.boardOffsetX = panelWidth + (availableWidth - boardSize * this.cellSize) / 2;
     if (isMobileDevice) {
       // Position at top on mobile, below score text and next balls preview
-      // Score text: safeAreaTop + 20, fontSize 24px -> bottom at ~safeAreaTop + 44
-      // Next balls: safeAreaTop + 15 (center), radius 15 -> bottom at ~safeAreaTop + 30
-      // Position grid below both with some spacing
-      const safeAreaTop = this.getSafeAreaTop();
-      this.boardOffsetY = safeAreaTop + 70; // Below score (44px) and next balls (30px) with spacing
+      const safeAreaTop = this.getSafeAreaTop() * this.dpr;
+      this.boardOffsetY = safeAreaTop + 70 * this.dpr; // Below score and next balls with spacing
     } else {
       // Center vertically on desktop
-      this.boardOffsetY = (screenHeight - boardSize * this.cellSize) / 2 - 50;
+      this.boardOffsetY = (screenHeight - boardSize * this.cellSize) / 2 - 50 * this.dpr;
     }
 
     // Initialize empty board
@@ -300,23 +298,20 @@ export class GameScene extends Phaser.Scene {
     const windowWidth = window.innerWidth;
     const isMobileScreen = windowWidth <= 768;
     const isSmallMobileScreen = windowWidth <= 480;
-    const toggleButtonWidth = isSmallMobileScreen ? 30 : isMobileScreen ? 35 : 40;
-    const scoreX = Math.max(this.configPanelWidth, toggleButtonWidth) + 10;
+    const toggleButtonWidth = (isSmallMobileScreen ? 30 : isMobileScreen ? 35 : 40) * this.dpr;
+    const scoreX = Math.max(this.configPanelWidth * this.dpr, toggleButtonWidth) + 10 * this.dpr;
     
-    const devicePixelRatio = window.devicePixelRatio || 1;
     // Position with 20px padding from top, accounting for safe area (notch)
-    // Get safe area inset from CSS or use 0 as fallback
-    const safeAreaTop = this.getSafeAreaTop();
-    const scoreY = safeAreaTop + 20;
+    const safeAreaTop = this.getSafeAreaTop() * this.dpr;
+    const scoreY = safeAreaTop + 20 * this.dpr;
+    const fontSize = Math.round(24 * this.dpr);
     this.scoreText = this.add.text(Math.round(scoreX), Math.round(scoreY), 'Score: 0', {
-      fontSize: '24px',
+      fontSize: fontSize + 'px',
       color: '#ffffff',
       fontFamily: 'Arial, sans-serif',
-      resolution: devicePixelRatio,
       align: 'left'
     });
     // Force integer positioning to avoid subpixel blur
-    // Origin (0, 0) means top-left corner, so y=20 is 20px from top
     this.scoreText.setOrigin(0, 0);
 
     // Next balls preview
@@ -451,9 +446,10 @@ export class GameScene extends Phaser.Scene {
     const boardSize = this.config.boardSize;
     const isMobile = window.innerWidth <= 768;
     
-    // Position leaderboard below the grid
-    const leaderboardY = this.boardOffsetY + boardSize * this.cellSize + 20;
+    // Position leaderboard below the grid (positions already scaled)
+    const leaderboardY = this.boardOffsetY + boardSize * this.cellSize + 20 * this.dpr;
     const leaderboardX = this.boardOffsetX;
+    const fontSize = Math.round((isMobile ? 14 : 16) * this.dpr);
 
     if (topScores.length === 0) {
       // Show placeholder
@@ -462,7 +458,7 @@ export class GameScene extends Phaser.Scene {
         Math.round(leaderboardY),
         'Leaderboard:\nNo scores yet',
         {
-          fontSize: isMobile ? '14px' : '16px',
+          fontSize: fontSize + 'px',
           color: '#888888',
           fontFamily: 'Arial, sans-serif',
           align: 'left'
@@ -477,16 +473,14 @@ export class GameScene extends Phaser.Scene {
         lines.push(`${rank}. ${entry.score}`);
       });
 
-      const devicePixelRatio = window.devicePixelRatio || 1;
       this.leaderboardText = this.add.text(
         Math.round(leaderboardX),
         Math.round(leaderboardY),
         lines.join('\n'),
         {
-          fontSize: isMobile ? '14px' : '16px',
+          fontSize: fontSize + 'px',
           color: '#ffffff',
           fontFamily: 'Arial, sans-serif',
-          resolution: devicePixelRatio,
           align: 'left'
         }
       );
@@ -502,32 +496,32 @@ export class GameScene extends Phaser.Scene {
     if (this.nextBalls.length === 0) return;
 
     const screenWidth = this.cameras.main.width;
-    const previewSize = 30;
-    const spacing = 5;
-    const startX = screenWidth - 20 - (previewSize * this.nextBalls.length + spacing * (this.nextBalls.length - 1));
+    const previewSize = 30 * this.dpr;
+    const spacing = 5 * this.dpr;
+    const margin = 20 * this.dpr;
+    const startX = screenWidth - margin - (previewSize * this.nextBalls.length + spacing * (this.nextBalls.length - 1));
 
-    const safeAreaTop = this.getSafeAreaTop();
-    const startY = safeAreaTop;
+    const safeAreaTop = this.getSafeAreaTop() * this.dpr;
+    const startY = safeAreaTop + 20 * this.dpr;
 
     // Add label - with crisp rendering for high DPI displays
-    const devicePixelRatio = window.devicePixelRatio || 1;
-    const label = this.add.text(Math.round(startX), Math.round(startY - 20), 'Next:', {
-      fontSize: '16px',
+    const fontSize = Math.round(16 * this.dpr);
+    const label = this.add.text(Math.round(startX), Math.round(startY), 'Next:', {
+      fontSize: fontSize + 'px',
       color: '#ffffff',
       fontFamily: 'Arial, sans-serif',
-      resolution: devicePixelRatio,
       align: 'left',
     });
     label.setOrigin(0, 0);
-    this.nextBallsPreview.push(this.add.container(0, 20 + startY, [label]));
+    this.nextBallsPreview.push(this.add.container(0, 0, [label]));
 
     // Add preview balls
     this.nextBalls.forEach((color, index) => {
       const x = startX + index * (previewSize + spacing) + previewSize / 2;
-      const y = startY + previewSize / 2;
+      const y = startY + previewSize / 2 + fontSize + 5 * this.dpr;
 
-      const ball = this.add.circle(x, y, previewSize / 2 - 2, color);
-      const container = this.add.container(0, startY + 20, [ball]);
+      const ball = this.add.circle(x, y, previewSize / 2 - 2 * this.dpr, color);
+      const container = this.add.container(0, 0, [ball]);
       this.nextBallsPreview.push(container);
     });
   }
@@ -608,13 +602,15 @@ export class GameScene extends Phaser.Scene {
 
     // Draw grid
     const boardSize = this.config.boardSize;
+    const gap = 2 * this.dpr;
     for (let row = 0; row < boardSize; row++) {
       for (let col = 0; col < boardSize; col++) {
         const x = this.boardOffsetX + col * this.cellSize + this.cellSize / 2;
         const y = this.boardOffsetY + row * this.cellSize + this.cellSize / 2;
 
-        // Draw cell background and store reference
-        const rect = this.add.rectangle(x, y, this.cellSize - 2, this.cellSize - 2, 0x333333, 0.3);
+        // Draw cell background and store reference - bright cyan cells
+        const rect = this.add.rectangle(x, y, this.cellSize - gap, this.cellSize - gap, 0x00e5ff, 0.25);
+        rect.setStrokeStyle(this.dpr, 0x00e5ff, 0.6);
         this.gridRectangles.push(rect);
       }
     }
@@ -671,7 +667,7 @@ export class GameScene extends Phaser.Scene {
     const x = this.boardOffsetX + cell.col * this.cellSize + this.cellSize / 2;
     const y = this.boardOffsetY + cell.row * this.cellSize + this.cellSize / 2;
 
-    const ball = this.add.circle(x, y, this.cellSize / 2 - 4, color);
+    const ball = this.add.circle(x, y, this.cellSize / 2 - 4 * this.dpr, color);
     ball.setInteractive();
     cell.ball = ball;
     cell.color = color;
@@ -683,8 +679,8 @@ export class GameScene extends Phaser.Scene {
   private handlePointerDown(pointer: Phaser.Input.Pointer) {
     if (this.gameOver) return;
 
-    // Don't handle clicks on the config panel
-    if (pointer.x < this.configPanelWidth) return;
+    // Don't handle clicks on the config panel (scale panel width to canvas coords)
+    if (pointer.x < this.configPanelWidth * this.dpr) return;
 
     const col = Math.floor((pointer.x - this.boardOffsetX) / this.cellSize);
     const row = Math.floor((pointer.y - this.boardOffsetY) / this.cellSize);
@@ -721,7 +717,7 @@ export class GameScene extends Phaser.Scene {
   private selectCell(cell: Cell) {
     this.selectedCell = cell;
     if (cell.ball) {
-      cell.ball.setStrokeStyle(3, 0xffffff);
+      cell.ball.setStrokeStyle(3 * this.dpr, 0xffffff);
       cell.ball.setScale(1.1);
     }
   }
