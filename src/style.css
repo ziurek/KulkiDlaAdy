@@ -150,6 +150,33 @@ canvas {
   border-color: #646cff;
 }
 
+/* Sound toggle checkbox */
+.sound-toggle {
+  padding: 10px 0;
+  border-top: 1px solid #444;
+  margin-top: 15px;
+}
+
+.checkbox-label {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: #646cff;
+  cursor: pointer;
+}
+
+.checkbox-label span {
+  font-size: 14px;
+  color: #ffffff;
+}
+
 #color-list {
   margin-bottom: 10px;
 }

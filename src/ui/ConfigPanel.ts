@@ -3,6 +3,7 @@ export interface GameConfig {
   minLineLength: number;
   boardSize: number;
   ballsPerRound: number;
+  soundEnabled: boolean;
 }
 
 export class ConfigPanel {
@@ -11,6 +12,7 @@ export class ConfigPanel {
   private minLineLengthInput!: HTMLSelectElement;
   private boardSizeInput!: HTMLSelectElement;
   private ballsPerRoundInput!: HTMLSelectElement;
+  private soundEnabledInput!: HTMLInputElement;
   private onConfigChange: (config: GameConfig) => void;
   private config: GameConfig;
   private readonly STORAGE_KEY = 'colorLinesGameConfig';
@@ -136,6 +138,13 @@ export class ConfigPanel {
           <button id="remove-color-btn" type="button">Remove Last</button>
         </div>
 
+        <div class="config-section sound-toggle">
+          <label class="checkbox-label">
+            <input type="checkbox" id="sound-enabled" checked>
+            <span>Sound Effects</span>
+          </label>
+        </div>
+
         <div class="config-section">
           <button id="reset-btn" type="button">Reset Game</button>
         </div>
@@ -147,6 +156,7 @@ export class ConfigPanel {
     this.minLineLengthInput = document.getElementById('min-line-length') as HTMLSelectElement;
     this.boardSizeInput = document.getElementById('board-size') as HTMLSelectElement;
     this.ballsPerRoundInput = document.getElementById('balls-per-round') as HTMLSelectElement;
+    this.soundEnabledInput = document.getElementById('sound-enabled') as HTMLInputElement;
   }
 
   private applyConfigToUI() {
@@ -165,6 +175,9 @@ export class ConfigPanel {
     const validBallsPerRound = [1, 2, 3, 4, 5];
     const ballsPerRound = validBallsPerRound.includes(this.config.ballsPerRound) ? this.config.ballsPerRound : 3;
     this.ballsPerRoundInput.value = ballsPerRound.toString();
+
+    // Set sound enabled checkbox
+    this.soundEnabledInput.checked = this.config.soundEnabled;
 
     // Clear existing color inputs
     const colorList = document.getElementById('color-list') as HTMLDivElement;
@@ -242,6 +255,10 @@ export class ConfigPanel {
       this.updateConfig();
     });
 
+    this.soundEnabledInput.addEventListener('change', () => {
+      this.updateConfig();
+    });
+
     const addColorBtn = document.getElementById('add-color-btn') as HTMLButtonElement;
     addColorBtn.addEventListener('click', () => {
       const colorList = document.getElementById('color-list') as HTMLDivElement;
@@ -275,6 +292,7 @@ export class ConfigPanel {
     const minLineLength = parseInt(this.minLineLengthInput.value) || 5;
     const boardSize = parseInt(this.boardSizeInput.value) || 9;
     const ballsPerRound = parseInt(this.ballsPerRoundInput.value) || 3;
+    const soundEnabled = this.soundEnabledInput.checked;
 
     // Valid minimum line lengths
     const validMinLineLengths = [3, 4, 5, 6, 7, 8];
@@ -292,7 +310,8 @@ export class ConfigPanel {
       colors: colors.length >= 2 ? colors : this.config.colors,
       minLineLength: validMinLineLength,
       boardSize: validBoardSize,
-      ballsPerRound: validBallsPerRoundValue
+      ballsPerRound: validBallsPerRoundValue,
+      soundEnabled: soundEnabled
     };
 
     // Save to localStorage
@@ -311,7 +330,8 @@ export class ConfigPanel {
       colors: [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff, 0x00ffff, 0xffa500],
       minLineLength: 5,
       boardSize: 9,
-      ballsPerRound: 3
+      ballsPerRound: 3,
+      soundEnabled: true
     };
 
     try {
@@ -335,7 +355,8 @@ export class ConfigPanel {
           : defaultConfig.boardSize,
         ballsPerRound: typeof parsed.ballsPerRound === 'number' && [1, 2, 3, 4, 5].includes(parsed.ballsPerRound)
           ? parsed.ballsPerRound
-          : defaultConfig.ballsPerRound
+          : defaultConfig.ballsPerRound,
+        soundEnabled: typeof parsed.soundEnabled === 'boolean' ? parsed.soundEnabled : defaultConfig.soundEnabled
       };
 
       // Ensure at least 2 colors

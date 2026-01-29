@@ -29,11 +29,14 @@ export class GameScene extends Phaser.Scene {
     colors: [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff, 0x00ffff, 0xffa500],
     minLineLength: 5,
     boardSize: 9,
-    ballsPerRound: 3
+    ballsPerRound: 3,
+    soundEnabled: true
   };
   private configPanelWidth: number = 250;
   // Device pixel ratio for high-DPI rendering
   private dpr: number = Math.min(window.devicePixelRatio || 1, 3);
+  // Audio context for sound effects
+  private audioContext: AudioContext | null = null;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -866,6 +869,9 @@ export class GameScene extends Phaser.Scene {
     const linesToRemove = this.gridVerifier.checkAndFindLines(this.board);
 
     if (linesToRemove.length > 0) {
+      // Play match sound
+      this.playMatchSound();
+
       // Remove balls
       linesToRemove.forEach(cell => {
         if (cell.ball) {
@@ -899,6 +905,55 @@ export class GameScene extends Phaser.Scene {
     }
 
     return false; // No lines were removed
+  }
+
+  private playMatchSound() {
+    if (!this.config.soundEnabled) return;
+
+    try {
+      // Create audio context on first use (must be after user interaction)
+      if (!this.audioContext) {
+        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+
+      const ctx = this.audioContext;
+      const now = ctx.currentTime;
+
+      // Create a pleasant "match" sound with multiple tones
+      const frequencies = [1046.50, 1318.51, 1567.98, 1975.53]; 
+
+      frequencies.forEach((freq, index) => {
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        oscillator.type = 'sine'; // Sine jest idealny dla czystego dźwięku "candy"
+
+        // Delikatny "Pitch Bend" (opcjonalne, ale dodaje "soczystości")
+        // Zaczynamy odrobinę niżej i wjeżdżamy na właściwą nutę (efekt "bloop")
+        oscillator.frequency.setValueAtTime(freq * 0.9, now);
+        oscillator.frequency.linearRampToValueAtTime(freq, now + 0.02);
+
+        // Szybszy timing (0.05 było ok, ale 0.03 jest bardziej zwarte)
+        const startTime = now + index * 0.03; 
+        const duration = 0.4; // Dłuższy ogon, żeby dźwięk ładnie wybrzmiał
+
+        // Obwiednia (Envelope) typu "Bell"
+        gainNode.gain.setValueAtTime(0, startTime);
+        // Bardzo szybki atak (uderzenie)
+        gainNode.gain.linearRampToValueAtTime(0.1, startTime + 0.01); 
+        // Długie, wykładnicze wygaszanie (naturalne brzmienie dzwonka)
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+        oscillator.start(startTime);
+        oscillator.stop(startTime + duration);
+      });
+    } catch (error) {
+      // Silently fail if audio isn't available
+      console.warn('Failed to play match sound:', error);
+    }
   }
 }
 
