@@ -1,42 +1,68 @@
 // Service Worker for PWA
-const CACHE_NAME = 'color-lines-v1';
+// Change this version number when you deploy new changes!
+const CACHE_VERSION = 'v2';
+const CACHE_NAME = `color-lines-${CACHE_VERSION}`;
 
-// Install event - cache resources
+// Resources to cache for offline use (only static assets)
+const STATIC_ASSETS = [
+  '/manifest.json',
+  '/icon.svg'
+];
+
+// Install event - cache static resources
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('Service Worker: Cache opened');
-        // Cache the main page and essential resources
-        return cache.addAll([
-          '/',
-          '/index.html',
-          '/manifest.json',
-          '/icon.svg'
-        ]).catch((err) => {
+        return cache.addAll(STATIC_ASSETS).catch((err) => {
           console.log('Service Worker: Cache addAll failed', err);
         });
       })
   );
-  // Force the waiting service worker to become the active service worker
+  // Force the waiting service worker to become the active service worker immediately
   self.skipWaiting();
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - Network First strategy for HTML/JS, Cache First for static assets
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  
+  // For HTML and JS files: Network First (always get fresh content)
+  if (event.request.mode === 'navigate' || 
+      url.pathname.endsWith('.html') || 
+      url.pathname.endsWith('.js') ||
+      url.pathname.endsWith('.css') ||
+      url.pathname === '/') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Cache the fresh response for offline use
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+          return response;
+        })
+        .catch(() => {
+          // Network failed, try cache
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
+  
+  // For other assets (images, fonts): Cache First
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        // Return cached version or fetch from network
         if (response) {
           return response;
         }
         return fetch(event.request).then((response) => {
-          // Don't cache non-successful responses
           if (!response || response.status !== 200 || response.type !== 'basic') {
             return response;
           }
-          // Clone the response
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
@@ -44,14 +70,10 @@ self.addEventListener('fetch', (event) => {
           return response;
         });
       })
-      .catch(() => {
-        // If both cache and network fail, return offline page if available
-        return caches.match('/index.html');
-      })
   );
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up old caches and take control immediately
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -63,6 +85,9 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
+    }).then(() => {
+      // Take control of all clients immediately
+      return self.clients.claim();
     })
   );
 });

@@ -16,16 +16,43 @@
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
     <script>
-      // Register service worker for PWA
+      // Register service worker for PWA with update checking
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js')
             .then((registration) => {
               console.log('SW registered: ', registration);
+              
+              // Check for updates immediately and periodically
+              registration.update();
+              
+              // Check for updates every 60 seconds
+              setInterval(() => {
+                registration.update();
+              }, 60000);
+              
+              // When a new SW is waiting, prompt to reload
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      // New content available, reload to get it
+                      console.log('New version available! Reloading...');
+                      window.location.reload();
+                    }
+                  });
+                }
+              });
             })
             .catch((registrationError) => {
               console.log('SW registration failed: ', registrationError);
             });
+        });
+        
+        // Reload when the new SW takes over
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          window.location.reload();
         });
       }
     </script>
